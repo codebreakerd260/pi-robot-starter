@@ -33,9 +33,9 @@ graph TB
     end
 
     subgraph Topics["📡 ROS 2 Topics"]
-        CmdVel[/cmd_vel<br/>geometry_msgs/Twist]
-        ImageTopic[/camera/image_raw<br/>sensor_msgs/Image]
-        TeleTopic[/telemetry<br/>std_msgs/String]
+        CmdVel[/cmd_vel\ngeometry_msgs/Twist]
+        ImageTopic[/camera/image_raw\nsensor_msgs/Image]
+        TeleTopic[/telemetry\nstd_msgs/String]
     end
 
     subgraph Nodes["⚙️ ROS 2 Nodes - Raspberry Pi"]
