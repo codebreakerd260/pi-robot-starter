@@ -18,35 +18,6 @@ A real-time web-based control dashboard for Raspberry Pi robots running ROS 2. C
 ## 🏗️ System Architecture
 
 ```mermaid
-graph TB
-    subgraph Browser["🌐 Web Browser"]
-        UI[React Dashboard]
-        Camera[Camera Feed]
-        Joy[Virtual Joystick]
-        Telem[Telemetry Panel]
-    end
-
-    subgraph Bridge["🔌 ROS Bridge Layer"]
-        ROSBridge[rosbridge_websocket (Port 9090)]
-        VideoServer[web_video_server (Port 8080)]
-    end
-
-    subgraph ROS2["🤖 ROS 2 on Raspberry Pi"]
-        CmdVel[/cmd_vel\ngeometry_msgs/Twist]
-        ImageTopic[/camera/image_raw\nsensor_msgs/Image]
-        TeleTopic[/telemetry\nstd_msgs/String]
-    end
-
-    subgraph Nodes["⚙️ ROS 2 Nodes"]
-        DiffDrive[diff_drive Node\nMotor Control (L298N)]
-        CamNode[camera_node\nIMX219 Capture]
-        TeleNode[telemetry_node\nSystem Monitoring]
-    end
-
-    %% Data Flow
-    Joy -->|Joystick Input| ROSBridge -->|Publishes| CmdVel -->|Drives| DiffDrive
-    CamNode -->|Publishes 20Hz| ImageTopic -->|Streams MJPEG| VideoServer -->|Displays| Camera
-    TeleNode -->|Publishes 1Hz| TeleTopic -->|Forwards| ROSBridge -->|Updates| Telem
 ```
 
 ## 📋 Prerequisites
