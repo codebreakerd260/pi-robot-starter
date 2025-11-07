@@ -19,66 +19,34 @@ A real-time web-based control dashboard for Raspberry Pi robots running ROS 2. C
 
 ```mermaid
 graph TB
-    subgraph Browser["🌐 Web Browser - React Dashboard"]
-        UI[Main Dashboard]
-        Camera[Camera Feed Component]
-        Joy[Virtual Joystick Component]
-        Telem[Telemetry Panel Component]
-        Conn[Connection Panel Component]
+    subgraph Browser["🌐 Web Browser"]
+        UI[React Dashboard]
+        Camera[Camera Feed]
+        Joy[Virtual Joystick]
+        Telem[Telemetry Panel]
     end
 
-    subgraph Bridge["🔌 Communication Layer"]
-        ROS[ROS Bridge WebSocket<br/>Port: 9090]
-        Video[Web Video Server<br/>Port: 8080]
+    subgraph Bridge["🔌 ROS Bridge Layer"]
+        ROSBridge[rosbridge_websocket (Port 9090)]
+        VideoServer[web_video_server (Port 8080)]
     end
 
-    subgraph Topics["📡 ROS 2 Topics"]
+    subgraph ROS2["🤖 ROS 2 on Raspberry Pi"]
         CmdVel[/cmd_vel\ngeometry_msgs/Twist]
         ImageTopic[/camera/image_raw\nsensor_msgs/Image]
         TeleTopic[/telemetry\nstd_msgs/String]
     end
 
-    subgraph Nodes["⚙️ ROS 2 Nodes - Raspberry Pi"]
-        DiffDrive[diff_drive Node<br/>L298N Motor Control<br/>GPIO PWM]
-        CamNode[camera_node<br/>IMX219 Camera<br/>OpenCV Capture]
-        TeleNode[telemetry_node<br/>System Monitoring<br/>psutil]
+    subgraph Nodes["⚙️ ROS 2 Nodes"]
+        DiffDrive[diff_drive Node\nMotor Control (L298N)]
+        CamNode[camera_node\nIMX219 Capture]
+        TeleNode[telemetry_node\nSystem Monitoring]
     end
 
-    subgraph Hardware["🔧 Physical Hardware"]
-        Motors[DC Motors<br/>Left & Right Wheels]
-        Camera219[IMX219 Camera Module]
-        RPi[Raspberry Pi 4<br/>CPU/Memory/Sensors]
-    end
-
-    UI --> Camera
-    UI --> Joy
-    UI --> Telem
-    UI --> Conn
-
-    Joy -->|WebSocket Commands| ROS
-    ROS -->|Publish| CmdVel
-    CmdVel -->|Subscribe| DiffDrive
-    DiffDrive -->|GPIO 17,18,22,23<br/>PWM 12,13| Motors
-
-    Camera -->|HTTP GET Stream| Video
-    CamNode -->|Publish 20Hz| ImageTopic
-    ImageTopic -->|Subscribe| Video
-
-    Conn -->|Configure URLs| ROS
-    Conn -->|Configure URLs| Video
-
-    TeleNode -->|Publish 1Hz| TeleTopic
-    TeleTopic -->|Subscribe| ROS
-    ROS -->|WebSocket Data| Telem
-
-    TeleNode -->|Read Stats| RPi
-    CamNode -->|Capture Frames| Camera219
-
-    style Browser fill:#1a1a2e,stroke:#06b6d4,stroke-width:3px,color:#fff
-    style Bridge fill:#0f172a,stroke:#06b6d4,stroke-width:2px,color:#fff
-    style Topics fill:#1e293b,stroke:#06b6d4,stroke-width:2px,color:#fff
-    style Nodes fill:#334155,stroke:#06b6d4,stroke-width:2px,color:#fff
-    style Hardware fill:#475569,stroke:#06b6d4,stroke-width:2px,color:#fff
+    %% Data Flow
+    Joy -->|Joystick Input| ROSBridge -->|Publishes| CmdVel -->|Drives| DiffDrive
+    CamNode -->|Publishes 20Hz| ImageTopic -->|Streams MJPEG| VideoServer -->|Displays| Camera
+    TeleNode -->|Publishes 1Hz| TeleTopic -->|Forwards| ROSBridge -->|Updates| Telem
 ```
 
 ## 📋 Prerequisites
