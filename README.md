@@ -2,173 +2,403 @@
 
 A real-time web-based control dashboard for Raspberry Pi robots running ROS 2. Control your robot remotely through an intuitive browser interface with live camera feed, virtual joystick, and system telemetry.
 
+![Dashboard Preview](https://img.shields.io/badge/ROS%202-Humble-blue?style=for-the-badge&logo=ros&logoColor=white)
+![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+
 ## 🌟 Features
 
-- **🕹️ Virtual Joystick Control** - Smooth, responsive touch/mouse control for robot movement
-- **📹 Live Camera Feed** - Real-time video streaming from robot's camera
-- **📊 System Telemetry** - Monitor CPU temperature, usage, memory, and uptime
-- **🔌 Easy Connection** - Simple WebSocket connection to ROS Bridge
-- **📱 Responsive Design** - Works on desktop, tablet, and mobile devices
-- **🎨 Modern UI** - Beautiful dark theme with real-time status indicators
+- 🕹️ **Virtual Joystick Control** - Smooth, responsive touch/mouse control for robot movement
+- 📹 **Live Camera Feed** - Real-time video streaming from robot's camera
+- 📊 **System Telemetry** - Monitor CPU temperature, usage, memory, and uptime
+- 🔌 **Easy Connection** - Simple WebSocket connection to ROS Bridge
+- 📱 **Responsive Design** - Works on desktop, tablet, and mobile devices
+- 🎨 **Modern UI** - Beautiful dark theme with real-time status indicators
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
 
 ```mermaid
 graph TB
-    subgraph Browser["🌐 Web Browser"]
-        UI[React Dashboard]
-        Camera[Camera Feed]
-        Joy[Virtual Joystick]
-        Telem[Telemetry]
+    subgraph Browser["🌐 Web Browser - React Dashboard"]
+        UI[Main Dashboard]
+        Camera[Camera Feed Component]
+        Joy[Virtual Joystick Component]
+        Telem[Telemetry Panel Component]
+        Conn[Connection Panel Component]
     end
 
-    subgraph ROS["🔌 ROS Bridge"]
-        Bridge[rosbridge_websocket:9090]
-        VideoServer[web_video_server:8080]
+    subgraph Bridge["🔌 Communication Layer"]
+        ROS[ROS Bridge WebSocket<br/>Port: 9090]
+        Video[Web Video Server<br/>Port: 8080]
     end
 
-    subgraph ROS2["🤖 ROS 2 (Raspberry Pi)"]
-        CmdVel[/cmd_vel Topic]
-        ImageTopic[/camera/image_raw]
-        TeleTopic[/telemetry]
+    subgraph Topics["📡 ROS 2 Topics"]
+        CmdVel[/cmd_vel<br/>geometry_msgs/Twist]
+        ImageTopic[/camera/image_raw<br/>sensor_msgs/Image]
+        TeleTopic[/telemetry<br/>std_msgs/String]
     end
 
-    subgraph Nodes["⚙️ ROS 2 Nodes"]
-        DiffDrive[diff_drive - Motor Control]
-        CamNode[camera_node - IMX219]
-        TeleNode[telemetry_node - Monitoring]
+    subgraph Nodes["⚙️ ROS 2 Nodes - Raspberry Pi"]
+        DiffDrive[diff_drive Node<br/>L298N Motor Control<br/>GPIO PWM]
+        CamNode[camera_node<br/>IMX219 Camera<br/>OpenCV Capture]
+        TeleNode[telemetry_node<br/>System Monitoring<br/>psutil]
     end
 
-    Joy --> Bridge --> CmdVel --> DiffDrive
-    CamNode --> ImageTopic --> VideoServer --> Camera
-    TeleNode --> TeleTopic --> Bridge --> Telem
+    subgraph Hardware["🔧 Physical Hardware"]
+        Motors[DC Motors<br/>Left & Right Wheels]
+        Camera219[IMX219 Camera Module]
+        RPi[Raspberry Pi 4<br/>CPU/Memory/Sensors]
+    end
+
+    UI --> Camera
+    UI --> Joy
+    UI --> Telem
+    UI --> Conn
+
+    Joy -->|WebSocket Commands| ROS
+    ROS -->|Publish| CmdVel
+    CmdVel -->|Subscribe| DiffDrive
+    DiffDrive -->|GPIO 17,18,22,23<br/>PWM 12,13| Motors
+
+    Camera -->|HTTP GET Stream| Video
+    CamNode -->|Publish 20Hz| ImageTopic
+    ImageTopic -->|Subscribe| Video
+
+    Conn -->|Configure URLs| ROS
+    Conn -->|Configure URLs| Video
+
+    TeleNode -->|Publish 1Hz| TeleTopic
+    TeleTopic -->|Subscribe| ROS
+    ROS -->|WebSocket Data| Telem
+
+    TeleNode -->|Read Stats| RPi
+    CamNode -->|Capture Frames| Camera219
+
+    style Browser fill:#1a1a2e,stroke:#06b6d4,stroke-width:3px,color:#fff
+    style Bridge fill:#0f172a,stroke:#06b6d4,stroke-width:2px,color:#fff
+    style Topics fill:#1e293b,stroke:#06b6d4,stroke-width:2px,color:#fff
+    style Nodes fill:#334155,stroke:#06b6d4,stroke-width:2px,color:#fff
+    style Hardware fill:#475569,stroke:#06b6d4,stroke-width:2px,color:#fff
 ```
+
+## 📋 Prerequisites
+
+### Raspberry Pi Requirements
+- **OS:** Ubuntu 22.04 Server (64-bit) or Raspberry Pi OS
+- **ROS 2:** Humble Hawksbill or later
+- **Hardware:**
+  - Raspberry Pi 4 (2GB+ RAM recommended)
+  - IMX219 Camera Module
+  - L298N Motor Driver
+  - 2x DC Motors with wheels
+  - Power supply (batteries/power bank)
+
+### Required ROS 2 Packages
+```bash
+sudo apt install ros-humble-rosbridge-server
+sudo apt install ros-humble-web-video-server
+```
+
+### Required Python Packages
+```bash
+pip3 install pigpio psutil opencv-python cv-bridge
+```
+
+### Development Machine Requirements
+- Node.js (v18 or later)
+- npm or yarn
+- Modern web browser
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Step 1: Robot Setup (Raspberry Pi)
 
-**On your Raspberry Pi:**
-- ROS 2 (Humble or later)
-- rosbridge_server
-- web_video_server
-- Python packages: `pigpio`, `psutil`, `cv_bridge`
-
-**On your development machine:**
-- Node.js & npm
-
-### Robot Setup (Raspberry Pi)
-
-1. **Build your ROS 2 workspace:**
+**1. Build your ROS 2 workspace:**
 ```bash
 cd ~/ros2_ws
-colcon build
+colcon build --symlink-install
 source install/setup.bash
 ```
 
-2. **Launch the robot nodes:**
+**2. Enable pigpio daemon (required for motor control):**
+```bash
+sudo systemctl enable pigpiod
+sudo systemctl start pigpiod
+```
+
+**3. Launch the robot nodes:**
 ```bash
 ros2 launch robot_bringup robot_bringup.launch.py
 ```
 
-3. **Start ROS Bridge (in new terminal):**
+**4. Start ROS Bridge (new terminal):**
 ```bash
+source ~/ros2_ws/install/setup.bash
 ros2 launch rosbridge_server rosbridge_websocket_launch.xml
 ```
 
-4. **Start video server (in new terminal):**
+**5. Start video server (new terminal):**
 ```bash
+source ~/ros2_ws/install/setup.bash
 ros2 run web_video_server web_video_server
 ```
 
-### Dashboard Setup
+### Step 2: Dashboard Setup
 
-1. **Clone and install:**
+**1. Clone the repository:**
 ```bash
 git clone <YOUR_GIT_URL>
 cd <YOUR_PROJECT_NAME>
+```
+
+**2. Install dependencies:**
+```bash
 npm install
 ```
 
-2. **Start development server:**
+**3. Start development server:**
 ```bash
 npm run dev
 ```
 
-3. **Connect to your robot:**
-   - Open the dashboard in your browser
-   - Enter your Raspberry Pi's IP address:
-     - ROS Bridge: `ws://<PI_IP>:9090`
-     - Camera: `http://<PI_IP>:8080/stream?topic=/camera/image_raw`
-   - Click "Connect"
+**4. Open dashboard:**
+- Navigate to `http://localhost:5173` in your browser
 
-## 🔧 Configuration
+**5. Connect to your robot:**
+- Enter your Raspberry Pi's IP address in the connection panel:
+  - **ROS Bridge URL:** `ws://<RASPBERRY_PI_IP>:9090`
+  - **Camera Stream URL:** `http://<RASPBERRY_PI_IP>:8080/stream?topic=/camera/image_raw`
+- Click **Connect**
+- You should see the camera feed and be able to control the robot!
 
-### Hardware Pins (L298N Motor Driver)
+## ⚙️ Configuration
 
-| Component | GPIO Pin |
-|-----------|----------|
-| Left Motor IN1 | GPIO 17 |
-| Left Motor IN2 | GPIO 18 |
-| Left Motor EN | GPIO 12 (PWM) |
-| Right Motor IN1 | GPIO 22 |
-| Right Motor IN2 | GPIO 23 |
-| Right Motor EN | GPIO 13 (PWM) |
+### Hardware Wiring (L298N Motor Driver)
+
+| Component | GPIO Pin | Function |
+|-----------|----------|----------|
+| Left Motor IN1 | GPIO 17 | Direction control |
+| Left Motor IN2 | GPIO 18 | Direction control |
+| Left Motor EN | GPIO 12 | PWM speed control |
+| Right Motor IN1 | GPIO 22 | Direction control |
+| Right Motor IN2 | GPIO 23 | Direction control |
+| Right Motor EN | GPIO 13 | PWM speed control |
+
+**Wiring Diagram:**
+```
+L298N          Raspberry Pi 4
+------         --------------
+IN1    <----   GPIO 17 (Left Motor)
+IN2    <----   GPIO 18 (Left Motor)
+ENA    <----   GPIO 12 (Left Motor PWM)
+IN3    <----   GPIO 22 (Right Motor)
+IN4    <----   GPIO 23 (Right Motor)
+ENB    <----   GPIO 13 (Right Motor PWM)
+GND    <----   GND
+5V     <----   5V (or separate power)
+```
 
 ### ROS 2 Topics
 
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/cmd_vel` | `geometry_msgs/Twist` | Robot movement commands |
-| `/camera/image_raw` | `sensor_msgs/Image` | Camera video feed |
-| `/telemetry` | `std_msgs/String` | System telemetry data (JSON) |
+| Topic | Message Type | Rate | Description |
+|-------|--------------|------|-------------|
+| `/cmd_vel` | `geometry_msgs/Twist` | Variable | Robot velocity commands (linear.x, angular.z) |
+| `/camera/image_raw` | `sensor_msgs/Image` | 20 Hz | Raw camera frames from IMX219 |
+| `/telemetry` | `std_msgs/String` | 1 Hz | JSON: CPU temp, CPU%, memory%, uptime |
 
-## 📡 Communication Flow
+### Network Ports
 
-1. **Movement Control:**
-   - User moves virtual joystick → WebSocket message → ROS Bridge → `/cmd_vel` topic → `diff_drive` node → Motor GPIO
+| Service | Port | Protocol | Description |
+|---------|------|----------|-------------|
+| ROS Bridge | 9090 | WebSocket | Bidirectional ROS topic communication |
+| Video Server | 8080 | HTTP | MJPEG video stream |
 
-2. **Video Streaming:**
-   - Camera → `camera_node` → `/camera/image_raw` → `web_video_server` → HTTP stream → Browser
+## 📡 Data Flow
 
-3. **Telemetry:**
-   - `telemetry_node` → `/telemetry` → ROS Bridge → WebSocket → Dashboard
+### 1. Movement Control Flow
+```
+User Interaction → Virtual Joystick (nipplejs)
+    ↓
+JavaScript Event {x, y} → Convert to linear/angular velocity
+    ↓
+ROSLIB.Message → WebSocket (Port 9090)
+    ↓
+ROS Bridge → /cmd_vel Topic (geometry_msgs/Twist)
+    ↓
+diff_drive Node → Calculate left/right wheel speeds
+    ↓
+pigpio GPIO → PWM signals to L298N
+    ↓
+DC Motors → Robot Movement
+```
+
+### 2. Video Streaming Flow
+```
+IMX219 Camera Module → Capture frames
+    ↓
+camera_node (OpenCV) → Process frames
+    ↓
+Publish to /camera/image_raw (20 Hz)
+    ↓
+web_video_server → Convert to MJPEG stream
+    ↓
+HTTP Server (Port 8080) → Stream endpoint
+    ↓
+Browser <img> tag → Display live feed
+```
+
+### 3. Telemetry Flow
+```
+Raspberry Pi System → CPU temp, usage, memory
+    ↓
+telemetry_node (psutil) → Read system stats
+    ↓
+JSON.stringify → /telemetry Topic (1 Hz)
+    ↓
+ROS Bridge → WebSocket to browser
+    ↓
+React State Update → Display in TelemetryPanel
+```
 
 ## 🛠️ Development
 
 ### Project Structure
 
 ```
-src/
-├── components/
-│   ├── CameraFeed.tsx      # Live video display
-│   ├── VirtualJoystick.tsx # Touch/mouse joystick
-│   ├── TelemetryPanel.tsx  # System stats display
-│   └── ConnectionPanel.tsx # Connection management
-├── pages/
-│   └── Index.tsx           # Main dashboard
-└── index.css               # Design system tokens
+ros2-robot-dashboard/
+├── src/
+│   ├── components/
+│   │   ├── CameraFeed.tsx       # Live MJPEG video display component
+│   │   ├── VirtualJoystick.tsx  # Touch/mouse joystick with nipplejs
+│   │   ├── TelemetryPanel.tsx   # Real-time system metrics display
+│   │   ├── ConnectionPanel.tsx  # ROS Bridge connection manager
+│   │   └── ui/                  # shadcn/ui components
+│   ├── pages/
+│   │   └── Index.tsx            # Main dashboard page
+│   ├── hooks/                   # Custom React hooks
+│   ├── lib/
+│   │   └── utils.ts             # Utility functions
+│   ├── index.css                # Global styles + design tokens
+│   └── main.tsx                 # App entry point
+├── public/
+│   └── robots.txt
+├── index.html
+├── tailwind.config.ts           # Tailwind configuration
+├── vite.config.ts               # Vite build configuration
+└── package.json
 ```
 
 ### Tech Stack
 
-- **Frontend:** React + TypeScript + Vite
-- **Styling:** Tailwind CSS + shadcn/ui
-- **ROS Integration:** roslib.js
-- **Joystick:** nipplejs
-- **State Management:** React Hooks
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Frontend Framework** | React 18.3 + TypeScript | UI components and type safety |
+| **Build Tool** | Vite | Fast development and optimized builds |
+| **Styling** | Tailwind CSS + shadcn/ui | Utility-first CSS and component library |
+| **ROS Integration** | roslib.js | WebSocket communication with ROS Bridge |
+| **Joystick** | nipplejs | Virtual joystick with touch/mouse support |
+| **State Management** | React Hooks (useState, useEffect, useCallback) | Component state and lifecycle |
+| **Notifications** | Sonner | Toast notifications for connection status |
 
-## 🎨 Design System
+### Design System
 
-The dashboard uses a cohesive design system with semantic tokens:
-- Dark theme optimized for robotics
-- Cyan/blue accent colors
-- Responsive grid layout
-- Real-time status indicators
+The dashboard implements a cohesive design system with semantic color tokens:
 
-## 📝 Project Info
+- **Theme:** Dark mode optimized for low-light robotics environments
+- **Primary Colors:** Cyan/blue accent colors (#06b6d4) for interactive elements
+- **Typography:** System font stack with clear hierarchy
+- **Layout:** Responsive CSS Grid (mobile-first approach)
+- **Components:** Glassmorphism effects with backdrop blur
+- **Animations:** Smooth transitions and real-time status indicators
 
-**URL**: https://lovable.dev/projects/f0be7543-b124-4377-ad5a-5a8d78771707
+### Key Dependencies
+
+```json
+{
+  "roslib": "^1.4.1",           // ROS Bridge WebSocket client
+  "nipplejs": "^0.10.2",        // Virtual joystick library
+  "lucide-react": "^0.462.0",   // Icon library
+  "sonner": "^1.7.4"            // Toast notifications
+}
+```
+
+## 🐛 Troubleshooting
+
+### Connection Issues
+
+**Problem:** "Failed to connect to ROS Bridge"
+- ✅ Check Raspberry Pi is on the same network
+- ✅ Verify rosbridge_server is running: `ros2 node list | grep rosbridge`
+- ✅ Test WebSocket: `ws://<PI_IP>:9090` in browser console
+- ✅ Check firewall: `sudo ufw allow 9090`
+
+**Problem:** Camera feed not showing
+- ✅ Verify web_video_server is running: `ros2 node list | grep web_video_server`
+- ✅ Test stream URL directly in browser: `http://<PI_IP>:8080/stream?topic=/camera/image_raw`
+- ✅ Check camera is detected: `v4l2-ctl --list-devices`
+- ✅ Verify camera node is publishing: `ros2 topic hz /camera/image_raw`
+
+**Problem:** Robot not responding to joystick
+- ✅ Check connection status indicator shows "Connected"
+- ✅ Verify cmd_vel topic: `ros2 topic echo /cmd_vel`
+- ✅ Check motor driver power supply
+- ✅ Test pigpio daemon: `sudo systemctl status pigpiod`
+
+### Performance Optimization
+
+**Laggy video feed:**
+```bash
+# Reduce camera resolution in camera_node.py
+self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+```
+
+**High CPU usage on Pi:**
+```bash
+# Lower camera frame rate
+self.timer = self.create_timer(0.1, self.timer_callback)  # 10 Hz instead of 20 Hz
+```
+
+## 🚀 Deployment
+
+### Production Build
+
+```bash
+npm run build
+```
+
+This creates an optimized production build in the `dist/` folder.
+
+### Hosting Options
+
+1. **Lovable (Recommended):** Click "Publish" in the Lovable editor
+2. **GitHub Pages:** Push to `gh-pages` branch
+3. **Vercel/Netlify:** Connect your GitHub repo for automatic deployments
+4. **Self-hosted:** Serve the `dist/` folder with nginx or Apache
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is open source and available under the MIT License.
+
+## 🙏 Acknowledgments
+
+- Built with [Lovable](https://lovable.dev)
+- Powered by ROS 2
+- Icons from [Lucide](https://lucide.dev)
+
+## 📞 Support
+
+- **Documentation:** https://docs.lovable.dev
+- **Project URL:** https://lovable.dev/projects/f0be7543-b124-4377-ad5a-5a8d78771707
+- **Discord:** [Lovable Community](https://discord.com/channels/1119885301872070706/1280461670979993613)
+
+---
+
+Made with ❤️ using Lovable
 
 ## How can I edit this code?
 
