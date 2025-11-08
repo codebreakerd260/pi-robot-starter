@@ -74,22 +74,10 @@ sudo systemctl start pigpiod
 
 **3. Launch the robot nodes:**
 
-```bash
-ros2 launch robot_bringup robot_bringup.launch.py
-```
-
-**4. Start ROS Bridge (new terminal):**
+This single command starts all the required ROS 2 nodes, including the ROS Bridge and the Web Video Server.
 
 ```bash
-source ~/ros2_ws/install/setup.bash
-ros2 launch rosbridge_server rosbridge_websocket_launch.xml
-```
-
-**5. Start video server (new terminal):**
-
-```bash
-source ~/ros2_ws/install/setup.bash
-ros2 run web_video_server web_video_server
+ros2 launch pi_robot robot_bringup.launch.py
 ```
 
 ### Step 2: Dashboard Setup
@@ -219,6 +207,11 @@ React State Update → Display in TelemetryPanel
 ```
 
 ## 🛠️ Development
+
+For more detailed information about the ROS 2 package and the web dashboard, please refer to their respective READMEs:
+
+-   [**ROS 2 Package (`pi_robot`)**](./apps/robot/src/pi_robot/README.md)
+-   [**Web Dashboard**](./apps/dashboard/README.md)
 
 ### Project Structure
 
