@@ -19,15 +19,26 @@ A real-time web-based control dashboard for Raspberry Pi robots running ROS 2. C
 
 ### Step 1: Robot Setup (Raspberry Pi)
 
-**1. Build your ROS 2 workspace:**
+**1. Create a ROS 2 Workspace and Link the Package:**
+
+First, create a `ros2_ws` directory and a `src` folder inside it. Then, symlink the `pi_robot` package from this project into the `src` folder.
+
+```bash
+mkdir -p ~/ros2_ws/src
+ln -s "$(pwd)/apps/robot/src/pi_robot" ~/ros2_ws/src/pi_robot
+```
+
+**2. Build the ROS 2 Package:**
+
+Navigate to your workspace, build the `pi_robot` package, and source the setup file.
 
 ```bash
 cd ~/ros2_ws
-colcon build --symlink-install
+colcon build --packages-select pi_robot --symlink-install
 source install/setup.bash
 ```
 
-**2. Enable pigpio daemon (required for motor control):**
+**3. Enable pigpio daemon (required for motor control):**
 
 ```bash
 sudo systemctl enable pigpiod
@@ -42,38 +53,40 @@ This single command starts all the required ROS 2 nodes, including the ROS Bridg
 ros2 launch pi_robot robot_bringup.launch.py
 ```
 
-### Step 2: Dashboard Setup
+### Step 2: Dashboard Setup (Development Machine)
 
-**1. Clone the repository:**
+**1. Navigate to the Dashboard Directory:**
+
+All commands for the dashboard should be run from the `apps/dashboard` directory.
 
 ```bash
-git clone <YOUR_GIT_URL>
-cd <YOUR_PROJECT_NAME>
+cd apps/dashboard
 ```
 
-**2. Install dependencies:**
+**2. Install Dependencies:**
 
 ```bash
 npm install
 ```
 
-**3. Start development server:**
+**3. Start the Development Server:**
 
 ```bash
 npm run dev
 ```
 
-**4. Open dashboard:**
+**4. Open the Dashboard:**
 
-- Navigate to `http://localhost:5173` in your browser
+- Navigate to `http://localhost:5173` in your browser.
 
-**5. Connect to your robot:**
+**5. Connect to Your Robot:**
 
-- Enter your Raspberry Pi's IP address in the connection panel:
-  - **ROS Bridge URL:** `ws://<RASPBERRY_PI_IP>:9090`
-  - **Camera Stream URL:** `http://<RASPBERRY_PI_IP>:8080/stream?topic=/camera/image_raw`
-- Click **Connect**
-- You should see the camera feed and be able to control the robot!
+- In the connection panel, enter your Raspberry Pi's IP address.
+  - **Hint:** You can find your Pi's IP address by running `hostname -I` on the Raspberry Pi.
+- **ROS Bridge URL:** `ws://<RASPBERRY_PI_IP>:9090`
+- **Camera Stream URL:** `http://<RASPBERRY_PI_IP>:8080/stream?topic=/camera/image_raw`
+- Click **Connect**.
+- You should now see the camera feed and be able to control the robot!
 
 ## 📚 Documentation
 
