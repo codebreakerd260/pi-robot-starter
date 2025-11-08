@@ -1,46 +1,24 @@
-# pi_robot ROS 2 Package
+# `pi_robot` ROS 2 Package
 
-This package contains the ROS 2 nodes to control the Raspberry Pi robot and stream data to the web-based dashboard.
+This package contains the ROS 2 nodes to control the Raspberry Pi robot and stream data to the web-based dashboard. It is the core of the robot's backend functionality. For a complete overview of the project, see the [main `README.md`](../../../README.md).
 
-## Prerequisites
+## Nodes
 
-- ROS 2 Humble Hawksbill
-- `ros-humble-rosbridge-server`
-- `ros-humble-web-video-server`
-- `python3-pigpio`
-- `python3-psutil`
-- `python3-opencv`
-- `cv-bridge`
+This package includes the following nodes, which are all started by the main launch file:
 
-## Building the Package
+-   **`diff_drive_node`**: Controls the robot's movement based on `/cmd_vel` commands.
+-   **`camera_node`**: Captures video from the camera and publishes it to the `/camera/image_raw` topic.
+-   **`telemetry_node`**: Gathers and publishes system telemetry data like CPU usage and temperature.
 
-1.  Navigate to your ROS 2 workspace:
-    ```bash
-    cd ~/ros2_ws
-    ```
-2.  Build the package:
-    ```bash
-    colcon build --packages-select pi_robot --symlink-install
-    ```
-3.  Source the workspace:
-    ```bash
-    source install/setup.bash
-    ```
+The main launch file also starts `rosbridge_server` and `web_video_server` for communication with the dashboard.
 
-## Launching the Robot
+## Launching
 
-To launch all the nodes required for the robot, run the following command:
+All nodes can be launched with a single command:
 
 ```bash
 ros2 launch pi_robot robot_bringup.launch.py
 ```
-
-This will start:
-- The differential drive controller
-- The camera node for video streaming
-- The telemetry node for system monitoring
-- The ROS Bridge server for communication with the web dashboard
-- The Web Video Server for streaming the camera feed
 
 ## Configurable Parameters
 
