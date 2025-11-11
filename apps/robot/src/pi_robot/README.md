@@ -14,10 +14,22 @@ The main launch file also starts `rosbridge_server` and `web_video_server` for c
 
 ## Launching
 
-All nodes can be launched with a single command:
+There are two primary ways to launch the nodes in this package:
+
+### 1. Hardware Bringup (on Raspberry Pi)
+
+This command starts all the nodes required to run the physical robot.
 
 ```bash
 ros2 launch pi_robot robot_bringup.launch.py
+```
+
+### 2. Simulation Bringup (with Gazebo)
+
+This command starts the Gazebo simulator and the necessary nodes for end-to-end testing without hardware. For a complete guide, see the [End-to-End Simulation](../../../../README.md#️-end-to-end-simulation) section in the main `README`.
+
+```bash
+ros2 launch pi_robot robot_simulation.launch.py
 ```
 
 ## Configurable Parameters

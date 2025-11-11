@@ -14,8 +14,12 @@ A real-time web-based control dashboard for Raspberry Pi robots running ROS 2. C
 - 🔌 **Easy Connection** - Simple WebSocket connection to ROS Bridge
 - 📱 **Responsive Design** - Works on desktop, tablet, and mobile devices
 - 🎨 **Modern UI** - Beautiful dark theme with real-time status indicators
+- 🐳 **Dockerized Simulation** - Run a full, end-to-end simulation with Gazebo using a single Docker command.
 
 ## 🚀 Quick Start
+
+> **Note**
+> The following instructions are for deploying the software on the physical Raspberry Pi robot. For a simulation-based workflow, please see the **[End-to-End Simulation](#-end-to-end-simulation)** section below.
 
 ### Step 1: Robot Setup (Raspberry Pi)
 
@@ -96,6 +100,68 @@ For more detailed information, please refer to the following documents:
 -   [**Synergy and Data Flow**](./docs/Synergy.md)
 -   [**ROS 2 Package (`pi_robot`)**](./apps/robot/src/pi_robot/README.md)
 -   [**Web Dashboard**](./apps/dashboard/README.md)
+
+## 🐳 End-to-End Simulation
+
+You can run the entire system (robot backend + dashboard) on your local machine using our Dockerized Gazebo simulation. This is the recommended way to test new features without needing the physical hardware.
+
+### Prerequisites
+
+-   [Docker](https://docs.docker.com/get-docker/) installed and running.
+-   An X11 server running on your host machine.
+    -   **Linux:** This is usually running by default.
+    -   **Windows:** Use [WSLg](https://learn.microsoft.com/en-us/windows/wsl/tutorials/gui-apps) (recommended) or install a server like [VcXsrv](https://sourceforge.net/projects/vcxsrv/).
+    -   **macOS:** Install and run [XQuartz](https://www.xquartz.org/).
+
+### Running the Simulation
+
+You will need to run the ROS 2 simulation and the web dashboard in two separate terminals.
+
+#### **Terminal 1: Launch the ROS 2 Simulation**
+
+This command builds the Docker image (if it's the first time) and starts the Gazebo simulator and all the ROS 2 nodes.
+
+1.  **Navigate to the Robot App Directory:**
+    ```bash
+    cd apps/robot
+    ```
+
+2.  **Allow Local X11 Connections:**
+    This step is required to allow the Gazebo GUI from the container to be displayed on your host screen.
+    ```bash
+    xhost +local:
+    ```
+
+3.  **Run with Docker Compose:**
+    ```bash
+    docker compose up --build
+    ```
+    -   After a few moments, you should see the Gazebo application window open with the robot in a simple, empty world.
+    -   You can close the simulation by pressing `Ctrl+C`.
+
+#### **Terminal 2: Launch the Web Dashboard**
+
+1.  **Navigate to the Dashboard Directory:**
+    ```bash
+    cd apps/dashboard
+    ```
+2.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+3.  **Start the Development Server:**
+    ```bash
+    npm run dev
+    ```
+
+### Connecting the Dashboard to the Simulation
+
+1.  Open your web browser and navigate to the URL provided by the `npm run dev` command (usually `http://localhost:5173`).
+2.  Since both the simulation and the dashboard are running on your local machine, use the default `localhost` connection settings:
+    -   **ROS Bridge URL:** `ws://localhost:9090`
+    -   **Camera Stream URL:** `http://localhost:8080/stream?topic=/camera/image_raw`
+3.  Click **Connect**.
+4.  You should now see the live camera feed from the Gazebo world and be able to drive the simulated robot with the virtual joystick!
 
 ## 🤝 Contributing
 
