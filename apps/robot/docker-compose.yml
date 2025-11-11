@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  ros2-gazebo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pi-robot-simulation:latest
+    container_name: pi_robot_simulation_container
+    environment:
+      - DISPLAY=${DISPLAY}
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      # Mount the X11 socket to allow the GUI to be displayed
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      # Mount the source code directory for live code changes
+      - ./src:/ros2_ws/src
+    # Use host networking to allow easy communication with the dashboard
+    network_mode: "host"
+    # Allow the container to access host devices (needed for GUI)
+    privileged: true
+    # The command to run the simulation
+    command: ros2 launch pi_robot robot_simulation.launch.py
